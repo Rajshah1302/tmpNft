@@ -1,0 +1,39 @@
+
+@compiler >= 6
+
+contract BasicNFT =
+
+    record state = {
+        name : string,
+        token_owners : map(int, address), // token id -> owner
+        token_approvals: map(int, address)
+        }
+
+    stateful entrypoint init(_name : string) = {
+        name = _name,
+        token_owners = {},
+        token_approvals = {}
+        }
+
+    public entrypoint ownerOf(_token_id : int) : option(address) =
+        Map.lookup(_token_id, state.token_owners)
+        
+    public stateful entrypoint transferFrom(_from : address, _to : address, _token_id : int) = 
+        require(_token_id >= 0, "Token Id is not negative")
+        //let hasApproval = state.token_approvals[_token_id] == Call.caller
+        //require(hasApproval, "No Approval")
+        Map.delete(_token_id, state.token_approvals)
+        put(state{token_owners[_token_id] = _to})
+        
+    public stateful entrypoint mint(_token_id: int) =
+        require(_token_id >= 0, "Token Id cannot be negative")
+        require(ownerOf(_token_id) == None, "Token id already exist")
+        
+        put(state{token_owners[_token_id] = Call.caller})
+
+    public stateful entrypoint approve(_to: address, _token_id: int) =
+        require(_token_id >= 0, "Token Id is not negative")
+        require(ownerOf(_token_id) == Some(Call.caller), "The owner is not you for this token id yet!.")
+
+        put(state{token_approvals[_token_id] = _to})
+    
